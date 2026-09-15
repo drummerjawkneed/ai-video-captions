@@ -116,10 +116,17 @@ def generate_ass_from_transcript(
 
     This is a thin wrapper around ``subtitles.generate_ass()``.
     Returns True on success.
+
+    Raises:
+        RuntimeError: if ``subtitles.generate_ass()`` returns False (no words
+            found in the clip range) — without this check, ``burn_subtitles()``
+            was being called against a subtitle file that was never written,
+            surfacing as a confusing low-level ffmpeg error instead of a clear
+            "no speech detected" failure.
     """
     import subtitles
 
-    return subtitles.generate_ass(
+    ok = subtitles.generate_ass(
         transcript,
         0,
         duration,
@@ -130,6 +137,11 @@ def generate_ass_from_transcript(
         video_width=video_width,
         video_height=video_height,
     )
+    if not ok:
+        raise RuntimeError(
+            "No speech detected in this clip — nothing to caption."
+        )
+    return ok
 
 
 def burn_subtitles(video_path: str, ass_path: str, output_path: str) -> bool:
